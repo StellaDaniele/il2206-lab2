@@ -16,6 +16,7 @@ OS_STK    stat_stk[TASK_STACKSIZE];
 
 OS_EVENT* semaphore1;
 OS_EVENT* semaphore2;
+INT32S shared = 0;
 
 /* Definition of Task Priorities */
 #define TASK1_PRIORITY      6  // highest priority
@@ -44,22 +45,29 @@ void printStackSize(char* name, INT8U prio)
 void task1(void* pdata)
 {
   INT8U err;
-  char state = '0';
+  //char state = '0';
   while (1)
     {
-      char text1[] = "Task 0 - State ";
-      int i;
 
-      for (i = 0; i < strlen(text1); i++)
-	putchar(text1[i]);
+      shared = abs(shared) + 1;
 
-  putchar(state);
-        putchar('\n');
-        OSSemPost(semaphore2); // Semaphore is signaled
+        printf("Sent: %" PRIu32 " \n", shared );
+        OSSemPost(semaphore2);
+        OSSemPend(semaphore1, 0, &err);
+        printf("Received: %" PRIu32 "\n", shared );
+  //     char text1[] = "Task 0 - State ";
+  //     int i;
 
-        OSSemPend(semaphore1, 0, &err); // Semaphore is waiting
+  //     for (i = 0; i < strlen(text1); i++)
+	// putchar(text1[i]);
 
-  state = (state=='0')?'1':'0';
+  // putchar(state);
+  //       putchar('\n');
+  //       OSSemPost(semaphore2); // Semaphore is signaled
+
+  //       OSSemPend(semaphore1, 0, &err); // Semaphore is waiting
+
+  // state = (state=='0')?'1':'0';
 
 
       OSTimeDlyHMSM(0, 0, 0, 11); /* Context Switch to next task
@@ -73,19 +81,22 @@ void task1(void* pdata)
 void task2(void* pdata)
 {
   INT8U err;
-    char state = '0';
+    // char state = '0';
   while (1)
     {
-      OSSemPend(semaphore2, 0, &err);
-      char text2[] = "Task 2 - State ";
-      int i;
+      OSSemPend(semaphore2, 0, &err); // semaphore is waiting
+        shared = shared * (-1);
+        OSSemPost(semaphore1);  // Semaphore is signaled
+  //     OSSemPend(semaphore2, 0, &err);
+  //     char text2[] = "Task 2 - State ";
+  //     int i;
 
-      for (i = 0; i < strlen(text2); i++)
-	putchar(text2[i]);
-   putchar(state);
-        putchar('\n');
-      state = (state=='0')?'1':'0';
-      OSSemPost(semaphore1);
+  //     for (i = 0; i < strlen(text2); i++)
+	// putchar(text2[i]);
+  //  putchar(state);
+  //       putchar('\n');
+  //     state = (state=='0')?'1':'0';
+  //     OSSemPost(semaphore1);
       OSTimeDlyHMSM(0, 0, 0, 4);
     }
 }

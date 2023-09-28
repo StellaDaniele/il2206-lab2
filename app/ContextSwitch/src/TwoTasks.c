@@ -47,15 +47,21 @@ void task1(void* pdata)
   char state = '0';
   while (1)
     {
-      char text1[] = "Task 0 - State ";
-      int i;
+      printf("Task 1 - State %c \n", state);
 
-      for (i = 0; i < strlen(text1); i++)
-	putchar(text1[i]);
+      OSSemPost(semaphore2); // Semaphore is signaled
+      PERF_RESET( PERFORMANCE_COUNTER_BASE );   //reset of the counter
 
-  putchar(state);
-        putchar('\n');
-        OSSemPost(semaphore2); // Semaphore is signaled
+      PERF_START_MEASURING( PERFORMANCE_COUNTER_BASE );
+  //     char text1[] = "Task 0 - State ";
+  //     int i;
+
+  //     for (i = 0; i < strlen(text1); i++)
+	// putchar(text1[i]);
+
+  // putchar(state);
+  //       putchar('\n');
+  //       OSSemPost(semaphore2); // Semaphore is signaled
 
         OSSemPend(semaphore1, 0, &err); // Semaphore is waiting
 
@@ -74,16 +80,42 @@ void task2(void* pdata)
 {
   INT8U err;
     char state = '0';
+     int clock_cycles = 0;
+    long double ContextSwitch_Seconds = 0;
+
+    int count = 0;
+    long double ContextSwitchAverage = 0;
+    long double ContextSwitchAccumulator=0;
   while (1)
     {
-      OSSemPend(semaphore2, 0, &err);
-      char text2[] = "Task 2 - State ";
-      int i;
+      OSSemPend(semaphore2, 0, &err); // semaphore is waiting
 
-      for (i = 0; i < strlen(text2); i++)
-	putchar(text2[i]);
-   putchar(state);
-        putchar('\n');
+      PERF_STOP_MEASURING( PERFORMANCE_COUNTER_BASE ); //stop the counter when the semaphores say to start next task
+
+      clock_cycles = perf_get_total_time( (void *) PERFORMANCE_COUNTER_BASE ); // alt_u64 number;
+      ContextSwitch_Seconds  = (long double) clock_cycles/ 50 ;
+
+      if(ContextSwitchAverage == 0 || ContextSwitch_Seconds < ContextSwitchAverage*1.5)
+      {
+        ContextSwitchAccumulator = ContextSwitchAccumulator + ContextSwitch_Seconds;
+        count = count + 1;
+        ContextSwitchAverage = ContextSwitchAccumulator/(double) count;
+      }
+
+      printf( "total time Context Switch: %Lf 1e-6 seconds; \n", ContextSwitch_Seconds);
+
+      if(count >= 11)
+        printf( "total time Context Switch, AVARAGE: %Lf 1e-6 seconds; \n", ContextSwitchAverage);
+
+      printf("Task 1 - state %c \n",state);
+  //     OSSemPend(semaphore2, 0, &err);
+  //     char text2[] = "Task 2 - State ";
+  //     int i;
+
+  //     for (i = 0; i < strlen(text2); i++)
+	// putchar(text2[i]);
+  //  putchar(state);
+  //       putchar('\n');
       state = (state=='0')?'1':'0';
       OSSemPost(semaphore1);
       OSTimeDlyHMSM(0, 0, 0, 4);
